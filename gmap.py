@@ -10,6 +10,7 @@ stores = []
 store = {}
 page = 1
 columns = ["Nom", "Enseigne", "Contact", "Ouvert", "lien", "Ville"]
+cookies = False
 
 def scrap_page(driver, city):
     global stores
@@ -60,32 +61,33 @@ def scrap_page(driver, city):
                 page += 1
                 scrap_page(driver, city)
 
-        except:
-            print("Error")
+        except Exception as e:
             store = {}
             pass
 
 def launch_url(url, city):
+    global cookies
+
     try:
         driver.get(url)
         time.sleep(1)
 
-        buttons = driver.find_elements(By.TAG_NAME, "button")
-        for button in buttons:
-            if button.text == "Accept all":
-                button.click()
-                break
-
-        time.sleep(1)
+        if (cookies == False):
+            cookies = True
+            buttons = driver.find_elements(By.TAG_NAME, "button")
+            for button in buttons:
+                if button.text == "Accept all":
+                    button.click()
+                    time.sleep(1)
+                    break
 
         divs = driver.find_elements(By.TAG_NAME, "div")
+        divs = divs[370:]
         for div in divs:
             if div.text == "More businesses" or div.text == "More places":
                 div.click()
                 break
-
         time.sleep(1)
-
         scrap_page(driver, city)
 
     except Exception as e:
@@ -94,16 +96,21 @@ def launch_url(url, city):
         return
 
 if __name__ == "__main__":
+    start_time = time.time()
+
     if len(sys.argv) != 2:
         print("Usage: python3 gmap.py file")
         exit(84)
     file = sys.argv[1]
 
-    driver = webdriver.Chrome()
+    chrome_options = webdriver.ChromeOptions()
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    chrome_options.add_experimental_option("prefs", prefs)
+    driver = webdriver.Chrome(options=chrome_options)
+
     with open(file, "r") as f:
         content = f.read()
         lines = content.split('\n')
-
         job = lines[0]
 
         for line in lines[1:]:
@@ -115,3 +122,4 @@ if __name__ == "__main__":
         df = pd.DataFrame(stores, columns=columns)
         df.to_csv("gmap-" + job + ".csv", index=False)
         driver.close()
+        print("scrapping effectué en %s secondes." % "{:.2f}".format(time.time() - start_time))
