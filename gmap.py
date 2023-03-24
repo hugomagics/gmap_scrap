@@ -54,7 +54,7 @@ def scrap_page(driver, city):
                     store = {}
 
             if ("Next" in link.text):
-                print("Page: " + str(page) + " Scraped")
+                print("Page: " + str(page) + " Scraped" + " - " + city)
                 link.click()
                 time.sleep(2)
                 page += 1
@@ -66,28 +66,32 @@ def scrap_page(driver, city):
             pass
 
 def launch_url(url, city):
+    try:
+        driver.get(url)
+        time.sleep(1)
 
-    driver.get(url)
+        buttons = driver.find_elements(By.TAG_NAME, "button")
+        for button in buttons:
+            if button.text == "Accept all":
+                button.click()
+                break
 
-    time.sleep(1)
+        time.sleep(1)
 
-    buttons = driver.find_elements(By.TAG_NAME, "button")
-    for button in buttons:
-        if button.text == "Accept all":
-            button.click()
-            break
+        divs = driver.find_elements(By.TAG_NAME, "div")
+        for div in divs:
+            if div.text == "More businesses" or div.text == "More places":
+                div.click()
+                break
 
-    time.sleep(1)
+        time.sleep(1)
 
-    divs = driver.find_elements(By.TAG_NAME, "div")
-    for div in divs:
-        if div.text == "More businesses" or div.text == "More places":
-            div.click()
-            break
+        scrap_page(driver, city)
 
-    time.sleep(1)
-
-    scrap_page(driver, city)
+    except Exception as e:
+        print("Erreur sur la page: " + url)
+        print(e)
+        return
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -99,11 +103,15 @@ if __name__ == "__main__":
     with open(file, "r") as f:
         content = f.read()
         lines = content.split('\n')
+
         job = lines[0]
+
         for line in lines[1:]:
             if (line == ""):
                 continue
             launch_url("https://www.google.com/search?q=" + job + "+" + line, line)
             page = 1
+
         df = pd.DataFrame(stores, columns=columns)
         df.to_csv("gmap-" + job + ".csv", index=False)
+        driver.close()
