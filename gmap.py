@@ -59,7 +59,8 @@ def scrap_page(driver, city):
                 link.click()
                 time.sleep(2)
                 page += 1
-                scrap_page(driver, city)
+                if page < 10:
+                    scrap_page(driver, city)
 
         except Exception as e:
             store = {}
@@ -86,9 +87,9 @@ def launch_url(url, city):
         for div in divs:
             if div.text == "More businesses" or div.text == "More places":
                 div.click()
+                time.sleep(1)
+                scrap_page(driver, city)
                 break
-        time.sleep(1)
-        scrap_page(driver, city)
 
     except Exception as e:
         print("Erreur sur la page: " + url)
